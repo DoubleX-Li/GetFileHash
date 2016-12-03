@@ -1,0 +1,3 @@
+# GetFileHash
+
+下载PyCharm的时候发现官网提供的checksum是sha256的，于是用python写了个图形化的hash校验程序。
