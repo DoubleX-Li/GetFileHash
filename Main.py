@@ -1,10 +1,29 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox, QDesktopWidget, QGridLayout, QFileDialog, \
     QLabel, QLineEdit
 import hashlib
 from tkinter import Tk
+
+
+class MyLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super(QLineEdit, self).__init__(parent)
+        # 初始化打开接受拖拽使能
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        event.accept()
+
+    def dropEvent(self, event):
+        # 获取拖放过来的文件的路径
+        st = str(event.mimeData().urls())
+        # 处理QUrl
+        st = st.replace("[PyQt5.QtCore.QUrl('file:///", "")
+        st = st.replace("')]", "")
+        self.setText(st)
 
 
 class Example(QWidget):
@@ -20,7 +39,9 @@ class Example(QWidget):
         sha256 = QLabel("SHA256:")
 
         # 文件信息
-        self.filenameText = QLineEdit()
+        self.filenameText = MyLineEdit()
+        self.filenameText.setText("将文件拖入此框或者点击下方浏览")
+        self.filenameText.textChanged.connect(self.changeFileName)
         self.md5Text = QLineEdit()
         self.sha1Text = QLineEdit()
         self.sha256Text = QLineEdit()
@@ -29,7 +50,7 @@ class Example(QWidget):
         compareWithClipboard = QPushButton("剪贴板比较")
         compareWithClipboard.clicked.connect(self.compare)
         browse = QPushButton("浏览")
-        browse.clicked.connect(self.calculate)
+        browse.clicked.connect(self.browse)
 
         # 网格布局
         grid = QGridLayout()
@@ -67,9 +88,14 @@ class Example(QWidget):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
-    def open(self):
+    def changeFileName(self):
+        self.filename = self.filenameText.text()
+        self.calculate()
+
+    def browse(self):
         filename = QFileDialog.getOpenFileName(self, "选择文件", "C:/")[0]
         self.filename = filename
+        self.calculate()
 
     def addHashType(self):
 
@@ -112,12 +138,14 @@ class Example(QWidget):
         return fsum
 
     def calculate(self):
-        self.open()
-        self.fmd5 = self.md5_sum()
-        self.filenameText.setText(self.filename)
-        self.md5Text.setText(self.fmd5["MD5"])
-        self.sha1Text.setText(self.fmd5["SHA1"])
-        self.sha256Text.setText(self.fmd5["SHA256"])
+        if os.path.isfile(self.filename):
+            self.fmd5 = self.md5_sum()
+            self.filenameText.setText(self.filename)
+            self.md5Text.setText(self.fmd5["MD5"])
+            self.sha1Text.setText(self.fmd5["SHA1"])
+            self.sha256Text.setText(self.fmd5["SHA256"])
+        else:
+            QMessageBox.question(self, "警告", "不是文件！", QMessageBox.Yes, QMessageBox.Yes)
 
     def compare(self):
         text = Tk().clipboard_get()
